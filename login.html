@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Science Revisions V2</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#03050f;--surface:#0d0d12;--surface2:#13131a;
+    --border:rgba(255,255,255,0.07);
+    --accent:#4f8ef7;--accent-glow:rgba(79,142,247,0.18);--accent-dim:rgba(79,142,247,0.55);
+    --text:#f0f0f5;--text-muted:#6b6b80;--text-dim:#3a3a4a;
+    --danger:#f7634f;--mono:'Space Mono',monospace;--sans:'Syne',sans-serif;
+  }
+  [data-theme="purple"]{--accent:#9b6ef7;--accent-glow:rgba(155,110,247,0.18);--accent-dim:rgba(155,110,247,0.55);}
+  [data-theme="red"]   {--accent:#f74f6e;--accent-glow:rgba(247,79,110,0.18); --accent-dim:rgba(247,79,110,0.55);}
+  [data-theme="green"] {--accent:#4ff79a;--accent-glow:rgba(79,247,154,0.18); --accent-dim:rgba(79,247,154,0.55);}
+  [data-theme="amber"] {--accent:#f7c34f;--accent-glow:rgba(247,195,79,0.18); --accent-dim:rgba(247,195,79,0.55);}
+
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  html,body{width:100%;height:100%;}
+  body{background:#03050f;color:var(--text);font-family:var(--sans);min-height:100vh;
+    display:flex;align-items:center;justify-content:center;
+    overflow:hidden;position:relative;cursor:none;transition:background 0.6s ease;}
+
+  #cursor{position:fixed;width:14px;height:14px;border-radius:50%;
+    background:rgba(79,142,247,0.9);box-shadow:0 0 8px 3px rgba(79,142,247,0.6);
+    pointer-events:none;z-index:9999;transform:translate(-50%,-50%);
+    transition:width .15s,height .15s,opacity .15s;}
+  #cursor.clicking{width:10px;height:10px;opacity:0.7;}
+
+  #bg-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
+
+  .card{position:relative;z-index:10;width:100%;max-width:420px;margin:1rem;
+    background:rgba(13,13,18,0.82);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    border:1px solid var(--border);border-radius:18px;padding:2.5rem 2.25rem 2rem;
+    animation:cardIn 0.65s cubic-bezier(0.16,1,0.3,1) both;cursor:none;}
+  .card::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
+    width:55%;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);
+    border-radius:0 0 4px 4px;transition:width 0.4s ease;}
+  .card:hover::before{width:80%;}
+  @keyframes cardIn{from{opacity:0;transform:translateY(28px) scale(0.96);}to{opacity:1;transform:translateY(0) scale(1);}}
+
+  .logo-wrap{display:flex;align-items:center;gap:12px;margin-bottom:2rem;}
+  .logo-icon{width:42px;height:42px;background:var(--accent-glow);border:1px solid var(--accent-dim);
+    border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .3s,border-color .3s;}
+  .logo-icon svg{width:20px;height:20px;stroke:var(--accent);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+  .logo-name{font-size:15px;font-weight:700;color:var(--text);letter-spacing:.02em;line-height:1.2;}
+  .logo-tag{font-size:11px;color:var(--text-muted);font-family:var(--mono);letter-spacing:.04em;}
+
+  .heading{font-size:23px;font-weight:800;color:var(--text);margin-bottom:4px;}
+  .subhead{font-size:12px;color:var(--text-muted);font-family:var(--mono);margin-bottom:1.75rem;}
+
+  .field{margin-bottom:1.2rem;}
+  label{display:block;font-size:10px;font-family:var(--mono);color:var(--text-muted);
+    letter-spacing:.1em;text-transform:uppercase;margin-bottom:7px;}
+  .input-wrap{position:relative;display:flex;align-items:center;}
+  .input-icon{position:absolute;left:13px;width:15px;height:15px;stroke:var(--text-dim);fill:none;
+    stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:stroke .25s;pointer-events:none;z-index:1;}
+  input[type="text"],input[type="password"]{width:100%;background:var(--surface2);
+    border:1px solid var(--border);border-radius:9px;padding:11px 13px 11px 40px;
+    color:var(--text);font-family:var(--mono);font-size:13px;outline:none;cursor:none;
+    transition:border-color .25s,box-shadow .25s;}
+  input[type="text"]:focus,input[type="password"]:focus{border-color:var(--accent-dim);box-shadow:0 0 0 3px var(--accent-glow);}
+  input:focus~.input-icon{stroke:var(--accent);}
+  .toggle-pw{position:absolute;right:11px;background:none;border:none;cursor:none;
+    padding:4px;display:flex;align-items:center;justify-content:center;z-index:1;}
+  .toggle-pw svg{width:15px;height:15px;stroke:var(--text-dim);fill:none;stroke-width:2;
+    stroke-linecap:round;stroke-linejoin:round;transition:stroke .2s;pointer-events:none;}
+  .toggle-pw:hover svg{stroke:var(--text-muted);}
+
+  .msg-box{display:none;align-items:center;gap:9px;border-radius:9px;padding:10px 13px;
+    font-size:12px;color:var(--danger);font-family:var(--mono);margin-bottom:1.2rem;
+    background:rgba(247,99,79,0.07);border:1px solid rgba(247,99,79,0.18);}
+  .msg-box.show{display:flex;animation:shake .4s ease;}
+  .msg-box svg{width:14px;height:14px;stroke:var(--danger);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+
+  .locked-box{display:none;flex-direction:column;align-items:center;text-align:center;gap:8px;
+    border-radius:9px;padding:1.2rem;margin-bottom:1.2rem;
+    background:rgba(247,99,79,0.06);border:1px solid rgba(247,99,79,0.18);}
+  .locked-box.show{display:flex;}
+  .locked-box svg{width:26px;height:26px;stroke:var(--danger);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+  .locked-box p{font-size:12px;color:var(--danger);font-family:var(--mono);}
+  .locked-box span{font-size:11px;color:var(--text-muted);font-family:var(--mono);}
+
+  @keyframes shake{0%,100%{transform:translateX(0);}20%{transform:translateX(-5px);}
+    40%{transform:translateX(5px);}60%{transform:translateX(-3px);}80%{transform:translateX(3px);}}
+
+  .btn{width:100%;padding:12px;background:var(--accent);color:#000;border:none;border-radius:9px;
+    font-family:var(--sans);font-size:14px;font-weight:700;letter-spacing:.03em;cursor:none;
+    transition:opacity .2s,transform .15s,background .3s;}
+  .btn:hover{opacity:.88;}.btn:active{transform:scale(0.98);}
+  .btn:disabled{opacity:.35;cursor:none;transform:none;}
+  .btn .spinner{display:none;width:15px;height:15px;border:2px solid rgba(0,0,0,.25);
+    border-top-color:#000;border-radius:50%;animation:spin .6s linear infinite;margin:0 auto;}
+  .btn.loading .btn-text{display:none;}.btn.loading .spinner{display:block;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .divider{display:flex;align-items:center;gap:10px;margin:1.4rem 0 1.1rem;
+    color:var(--text-dim);font-size:10px;font-family:var(--mono);letter-spacing:.08em;}
+  .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+
+  .themes{display:flex;align-items:center;justify-content:center;gap:9px;}
+  .themes-label{font-size:10px;color:var(--text-muted);font-family:var(--mono);letter-spacing:.06em;margin-right:2px;}
+  .theme-dot{width:17px;height:17px;border-radius:50%;border:2px solid transparent;cursor:none;transition:transform .2s,border-color .2s;}
+  .theme-dot:hover{transform:scale(1.25);}.theme-dot.active{border-color:#fff;transform:scale(1.2);}
+  .theme-dot[data-t="blue"]  {background:#4f8ef7;}
+  .theme-dot[data-t="purple"]{background:#9b6ef7;}
+  .theme-dot[data-t="red"]   {background:#f74f6e;}
+  .theme-dot[data-t="green"] {background:#4ff79a;}
+  .theme-dot[data-t="amber"] {background:#f7c34f;}
+
+  #stop-overlay{display:none;position:fixed;inset:0;z-index:9998;background:#000;
+    flex-direction:column;align-items:center;justify-content:center;gap:1.4rem;text-align:center;padding:2rem;}
+  #stop-overlay.active{display:flex;}
+  .stop-icon{width:62px;height:62px;border-radius:50%;background:rgba(247,99,79,.1);
+    border:2px solid var(--danger);display:flex;align-items:center;justify-content:center;
+    animation:pulse 2s ease-in-out infinite;}
+  .stop-icon svg{width:30px;height:30px;stroke:var(--danger);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(247,99,79,.35);}50%{box-shadow:0 0 0 14px rgba(247,99,79,0);}}
+  .stop-title{font-size:26px;font-weight:800;color:var(--text);}
+  .stop-sub{font-size:13px;color:var(--text-muted);font-family:var(--mono);max-width:300px;line-height:1.65;}
+</style>
+</head>
+<body>
+
+<!-- Firebase CDN (compat version — works with plain HTML) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<div id="cursor"></div>
+<canvas id="bg-canvas"></canvas>
+
+<div id="stop-overlay">
+  <div class="stop-icon"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></div>
+  <p class="stop-title">Session Ended</p>
+  <p class="stop-sub">Your session has been stopped by the owner. Contact them to continue.</p>
+</div>
+
+<div class="card">
+  <div class="logo-wrap">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+    </div>
+    <div><div class="logo-name">Science Revisions</div><div class="logo-tag">// v2.0</div></div>
+  </div>
+  <h1 class="heading">Welcome back</h1>
+  <p class="subhead">Sign in with your assigned credentials</p>
+
+  <div class="msg-box" id="error-box">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+    <span id="error-text">Incorrect username or password.</span>
+  </div>
+
+  <div class="locked-box" id="locked-box">
+    <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    <p>Your account has been locked.</p><span>Contact the site owner to regain access.</span>
+  </div>
+
+  <div class="field">
+    <label for="username">Username</label>
+    <div class="input-wrap">
+      <input type="text" id="username" placeholder="Enter your username" autocomplete="username"/>
+      <svg class="input-icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="password">Password</label>
+    <div class="input-wrap">
+      <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password"/>
+      <svg class="input-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <button class="toggle-pw" id="toggle-pw" type="button" tabindex="-1">
+        <svg id="eye-icon" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <button class="btn" id="login-btn" type="button">
+    <span class="btn-text">Sign In</span><div class="spinner"></div>
+  </button>
+
+  <div class="divider">theme</div>
+  <div class="themes">
+    <span class="themes-label">color —</span>
+    <div class="theme-dot active" data-t="blue"></div>
+    <div class="theme-dot"        data-t="purple"></div>
+    <div class="theme-dot"        data-t="red"></div>
+    <div class="theme-dot"        data-t="green"></div>
+    <div class="theme-dot"        data-t="amber"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+
+  /* ── FIREBASE INIT ── */
+  const firebaseConfig = {
+    apiKey:            "AIzaSyAa-fN7WNj46UznXEOO0CsyKX8j8kCokhQ",
+    authDomain:        "science-revisions-v2.firebaseapp.com",
+    projectId:         "science-revisions-v2",
+    storageBucket:     "science-revisions-v2.firebasestorage.app",
+    messagingSenderId: "950664248443",
+    appId:             "1:950664248443:web:8e57782d5b0ba7ff6cf6de"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db   = firebase.firestore();
+
+  /* ── CURSOR ── */
+  const cursorEl = document.getElementById('cursor');
+  const mouse    = {x:-9999,y:-9999};
+
+  const CURSOR_C = {
+    blue:  ['rgba(79,142,247,0.9)',  '0 0 8px 3px rgba(79,142,247,0.6)'],
+    purple:['rgba(155,110,247,0.9)','0 0 8px 3px rgba(155,110,247,0.6)'],
+    red:   ['rgba(247,79,110,0.9)', '0 0 8px 3px rgba(247,79,110,0.6)'],
+    green: ['rgba(79,247,154,0.9)', '0 0 8px 3px rgba(79,247,154,0.6)'],
+    amber: ['rgba(247,195,79,0.9)', '0 0 8px 3px rgba(247,195,79,0.6)'],
+  };
+
+  const BG_C = {blue:'#03050f',purple:'#06030f',red:'#0f0305',green:'#030f07',amber:'#0f0a03'};
+
+  window.addEventListener('mousemove',e=>{
+    mouse.x=e.clientX;mouse.y=e.clientY;
+    cursorEl.style.left=e.clientX+'px';cursorEl.style.top=e.clientY+'px';
+  });
+  window.addEventListener('mousedown',()=>cursorEl.classList.add('clicking'));
+  window.addEventListener('mouseup',  ()=>cursorEl.classList.remove('clicking'));
+
+  /* ── KINETIC DOTS ── */
+  const canvas=document.getElementById('bg-canvas');
+  const ctx=canvas.getContext('2d');
+  let W,H,dots=[];
+  const N=88,CD=130,RD=115;
+
+  function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;}
+  function mkDot(){return{x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.45,vy:(Math.random()-.5)*.45,r:Math.random()*1.8+1,p:Math.random()*Math.PI*2};}
+
+  function burst(x,y){
+    dots.forEach(d=>{
+      const dx=d.x-x,dy=d.y-y,dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<180&&dist>0){const f=(180-dist)/180*6;d.vx+=(dx/dist)*f;d.vy+=(dy/dist)*f;}
+    });
+  }
+
+  function init(){resize();dots=Array.from({length:N},mkDot);}
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    for(let i=0;i<dots.length;i++){
+      for(let j=i+1;j<dots.length;j++){
+        const dx=dots[i].x-dots[j].x,dy=dots[i].y-dots[j].y,dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist<CD){
+          ctx.beginPath();ctx.moveTo(dots[i].x,dots[i].y);ctx.lineTo(dots[j].x,dots[j].y);
+          ctx.strokeStyle=`rgba(255,255,255,${(1-dist/CD)*.18})`;ctx.lineWidth=.8;ctx.stroke();
+        }
+      }
+    }
+    dots.forEach(d=>{
+      d.p+=.018;const pr=d.r+Math.sin(d.p)*.6;
+      const mdx=d.x-mouse.x,mdy=d.y-mouse.y,md=Math.sqrt(mdx*mdx+mdy*mdy);
+      if(md<RD&&md>0){const f=(RD-md)/RD*3.5;d.vx+=(mdx/md)*f*.06;d.vy+=(mdy/md)*f*.06;}
+      d.vx*=.985;d.vy*=.985;
+      const sp=Math.sqrt(d.vx*d.vx+d.vy*d.vy);if(sp>2.8){d.vx=d.vx/sp*2.8;d.vy=d.vy/sp*2.8;}
+      d.x+=d.vx;d.y+=d.vy;
+      if(d.x<-10)d.x=W+10;if(d.x>W+10)d.x=-10;if(d.y<-10)d.y=H+10;if(d.y>H+10)d.y=-10;
+      const g=ctx.createRadialGradient(d.x,d.y,0,d.x,d.y,pr*4);
+      g.addColorStop(0,'rgba(255,255,255,0.22)');g.addColorStop(1,'rgba(255,255,255,0)');
+      ctx.beginPath();ctx.arc(d.x,d.y,pr*4,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
+      ctx.beginPath();ctx.arc(d.x,d.y,pr,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,0.75)';ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize',resize);
+  window.addEventListener('click',e=>burst(e.clientX,e.clientY));
+  window.addEventListener('touchstart',e=>{const t=e.touches[0];burst(t.clientX,t.clientY);},{passive:true});
+  window.addEventListener('touchmove',e=>{const t=e.touches[0];mouse.x=t.clientX;mouse.y=t.clientY;},{passive:true});
+  init();draw();
+
+  /* ── THEME ── */
+  function applyTheme(t){
+    document.querySelectorAll('.theme-dot').forEach(d=>d.classList.remove('active'));
+    const dot=document.querySelector(`.theme-dot[data-t="${t}"]`);
+    if(dot)dot.classList.add('active');
+    document.body.dataset.theme=t==='blue'?'':t;
+    document.body.style.background=BG_C[t]||BG_C.blue;
+    const[bg,sh]=CURSOR_C[t]||CURSOR_C.blue;
+    cursorEl.style.background=bg;cursorEl.style.boxShadow=sh;
+    localStorage.setItem('srv2-theme',t);
+  }
+  document.querySelectorAll('.theme-dot').forEach(d=>{
+    d.addEventListener('click',e=>{e.stopPropagation();applyTheme(d.dataset.t);});
+  });
+  applyTheme(localStorage.getItem('srv2-theme')||'blue');
+
+  /* ── PASSWORD TOGGLE ── */
+  const pwInput =document.getElementById('password');
+  const togglePw=document.getElementById('toggle-pw');
+  const eyeIcon =document.getElementById('eye-icon');
+  const EO='<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  const EC='<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';
+  togglePw.addEventListener('click',e=>{
+    e.stopPropagation();
+    const h=pwInput.type==='password';
+    pwInput.type=h?'text':'password';
+    eyeIcon.innerHTML=h?EC:EO;
+  });
+
+  /* ── UI HELPERS ── */
+  const btn      =document.getElementById('login-btn');
+  const errorBox =document.getElementById('error-box');
+  const errorText=document.getElementById('error-text');
+  const lockedBox=document.getElementById('locked-box');
+
+  function showError(msg){
+    errorText.textContent=msg;
+    lockedBox.classList.remove('show');
+    errorBox.classList.remove('show');
+    void errorBox.offsetWidth;
+    errorBox.classList.add('show');
+  }
+
+  function showLocked(){
+    errorBox.classList.remove('show');
+    lockedBox.classList.add('show');
+  }
+
+  function setLoading(on){
+    btn.classList.toggle('loading',on);
+    btn.disabled=on;
+  }
+
+  /* ── LOGIN WITH FIREBASE ── */
+  btn.addEventListener('click', async ()=>{
+    const usernameInput = document.getElementById('username').value.trim().toLowerCase();
+    const password      = pwInput.value;
+
+    if(!usernameInput||!password){ showError('Please fill in all fields.'); return; }
+
+    setLoading(true);
+    errorBox.classList.remove('show');
+    lockedBox.classList.remove('show');
+
+    try {
+      // Step 1: find user document by username in Firestore
+      const snap = await db.collection('users')
+                           .where('username','==', usernameInput)
+                           .limit(1)
+                           .get();
+
+      if(snap.empty){
+        setLoading(false);
+        showError('Incorrect username or password.');
+        return;
+      }
+
+      const userDoc  = snap.docs[0];
+      const userData = userDoc.data();
+
+      // Step 2: check if account is locked
+      if(userData.locked === true){
+        setLoading(false);
+        showLocked();
+        return;
+      }
+
+      // Step 3: sign in with Firebase Auth using stored email + entered password
+      await auth.signInWithEmailAndPassword(userData.email, password);
+
+      // Step 4: save role + username to sessionStorage for other pages to use
+      sessionStorage.setItem('srv2-role',     userData.role);
+      sessionStorage.setItem('srv2-username', userData.username);
+      sessionStorage.setItem('srv2-uid',      userDoc.id);
+
+      // Step 5: redirect based on role
+      if     (userData.role === 'owner') window.location.href = 'owner.html';
+      else if(userData.role === 'admin') window.location.href = 'admin.html';
+      else                               window.location.href = 'home.html';
+
+    } catch(err) {
+      setLoading(false);
+      // Firebase auth errors
+      if(err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential'){
+        showError('Incorrect username or password.');
+      } else if(err.code === 'auth/too-many-requests'){
+        showError('Too many attempts. Try again later.');
+      } else {
+        showError('Something went wrong. Please try again.');
+        console.error(err);
+      }
+    }
+  });
+
+  document.addEventListener('keydown',e=>{ if(e.key==='Enter') btn.click(); });
+
+  /* ── AUTO REDIRECT IF ALREADY LOGGED IN ── */
+  auth.onAuthStateChanged(async user=>{
+    if(user){
+      const role = sessionStorage.getItem('srv2-role');
+      if(role === 'owner')      window.location.href = 'owner.html';
+      else if(role === 'admin') window.location.href = 'admin.html';
+      else if(role)             window.location.href = 'home.html';
+    }
+  });
+
+})();
+</script>
+</body>
+</html>
